@@ -7,13 +7,28 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	entities "github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
 const defaultPort = "8080"
 
 func main() {
+
+	db, err := gorm.Open("postgres", "host=localhost port=54320 user=postgres dbname=blogging password=password sslmode=disable")
+
+	if err != nil {
+		log.Panicf("unable to open postgres db %v", err)
+	}
+
+	db.AutoMigrate(&entities.User{})
+	db.Create(&entities.User{Email: "Simonwtaylor93@gmail.com", Password: "Woop", Username: "Simmo"})
+
+	defer db.Close()
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = defaultPort
