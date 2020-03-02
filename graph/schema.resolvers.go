@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
 	"github.com/Simonwtaylor/blogging-gql/graph/model"
 )
@@ -15,17 +16,34 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 }
 
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+
 	return []*model.Todo{
 		&model.Todo{
 			ID:   "1",
 			Done: false,
 			Text: "Hello world :D",
 			User: &model.User{
-				ID:   "1",
-				Name: "Bob",
+				ID: "1",
 			},
 		},
 	}, nil
+}
+
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	var users []entities.User
+	r.DB.Find(&users)
+	var userModels []*model.User
+	for _, user := range users {
+		userModels = append(userModels, &model.User{
+			Email:     user.Email,
+			Username:  user.Username,
+			Active:    user.Active,
+			CreatedAt: user.CreatedAt.Nanosecond(),
+			ID:        fmt.Sprintf("%v", user.ID),
+		})
+	}
+
+	return userModels, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

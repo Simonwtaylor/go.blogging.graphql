@@ -3,4 +3,8 @@
 // It serves as dependency injection for your app, add any dependencies you require here.
 package graph
 
-type Resolver struct{}
+import "github.com/jinzhu/gorm"
+
+type Resolver struct {
+	DB *gorm.DB
+}

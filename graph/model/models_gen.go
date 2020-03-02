@@ -8,13 +8,20 @@ type NewTodo struct {
 }
 
 type Todo struct {
-	ID   string `json:"id"`
-	Text string `json:"text"`
-	Done bool   `json:"done"`
-	User *User  `json:"user"`
+	ID      string `json:"id"`
+	Text    string `json:"text"`
+	Done    bool   `json:"done"`
+	Comment string `json:"comment"`
+	User    *User  `json:"user"`
 }
 
 type User struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID        string `json:"id"`
+	CreatedAt int    `json:"createdAt"`
+	UpdatedAt int    `json:"updatedAt"`
+	DeletedAt *int   `json:"deletedAt"`
+	Username  string `json:"username"`
+	Password  string `json:"password"`
+	Email     string `json:"email"`
+	Active    bool   `json:"active"`
 }

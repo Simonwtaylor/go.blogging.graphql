@@ -7,7 +7,7 @@ import (
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
-	entities "github.com/Simonwtaylor/blogging-gql/entities"
+	"github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
 	"github.com/jinzhu/gorm"
@@ -25,7 +25,7 @@ func main() {
 	}
 
 	db.AutoMigrate(&entities.User{})
-	db.Create(&entities.User{Email: "Simonwtaylor93@gmail.com", Password: "Woop", Username: "Simmo"})
+	db.Create(&entities.User{Email: "nickdunn@gmail.com", Password: "Woop", Username: "Nick"})
 
 	defer db.Close()
 
@@ -34,7 +34,9 @@ func main() {
 		port = defaultPort
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
+	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{
+		DB: db,
+	}}))
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.Handle("/query", srv)
