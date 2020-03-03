@@ -15,8 +15,33 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	user := entities.User{
+		Active:   input.Active,
+		Email:    input.Email,
+		Password: input.Password,
+		Username: input.Username,
+	}
 
+	isNew := r.DB.NewRecord(user)
+
+	if !isNew {
+		return nil, fmt.Errorf("unable to create user as it already contains an id, %v", user)
+	}
+
+	r.DB.Create(&user)
+
+	return &model.User{
+		ID:        fmt.Sprintf("%d", user.ID),
+		CreatedAt: user.CreatedAt.Nanosecond(),
+		Active:    user.Active,
+		Email:     user.Email,
+		Password:  user.Password,
+		Username:  user.Username,
+	}, nil
+}
+
+func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 	return []*model.Todo{
 		&model.Todo{
 			ID:   "1",
