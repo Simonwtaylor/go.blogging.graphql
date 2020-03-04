@@ -5,15 +5,12 @@ package graph
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
 	"github.com/Simonwtaylor/blogging-gql/graph/model"
 )
-
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented"))
-}
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
 	user := entities.User{
@@ -41,15 +38,34 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 	}, nil
 }
 
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	return []*model.Todo{
-		&model.Todo{
-			ID:   "1",
-			Done: false,
-			Text: "Hello world :D",
-			User: &model.User{
-				ID: "1",
-			},
+func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) (*model.Post, error) {
+	post := entities.Post{
+		Content:    input.Content,
+		DatePosted: time.Now(),
+	}
+	var user entities.User
+	r.DB.First(&user)
+
+	post.User = user
+
+	isNew := r.DB.NewRecord(post)
+
+	if !isNew {
+		return nil, fmt.Errorf("unable to create user as it already contains an id, %v", user)
+	}
+
+	r.DB.Create(&post)
+
+	return &model.Post{
+		ID:      fmt.Sprintf("%d", post.ID),
+		Content: post.Content,
+		User: &model.User{
+			ID:        fmt.Sprintf("%d", post.User.ID),
+			CreatedAt: post.User.CreatedAt.Nanosecond(),
+			Active:    post.User.Active,
+			Email:     post.User.Email,
+			Password:  post.User.Password,
+			Username:  post.User.Username,
 		},
 	}, nil
 }
@@ -69,6 +85,27 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	}
 
 	return userModels, nil
+}
+
+func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
+	var posts []entities.Post
+	r.DB.Preload("User").Find(&posts)
+	var postModels []*model.Post
+	for _, post := range posts {
+		postModels = append(postModels, &model.Post{
+			Content: post.Content,
+			ID:      fmt.Sprintf("%v", post.ID),
+			User: &model.User{
+				Email:     post.User.Email,
+				Username:  post.User.Username,
+				Active:    post.User.Active,
+				CreatedAt: post.User.CreatedAt.Nanosecond(),
+				ID:        fmt.Sprintf("%v", post.User.ID),
+			},
+		})
+	}
+
+	return postModels, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

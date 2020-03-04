@@ -2,9 +2,9 @@
 
 package model
 
-type NewTodo struct {
-	Text   string `json:"text"`
-	UserID string `json:"userId"`
+type NewPost struct {
+	Content string `json:"content"`
+	UserID  string `json:"userId"`
 }
 
 type NewUser struct {
@@ -14,11 +14,9 @@ type NewUser struct {
 	Active   bool   `json:"active"`
 }
 
-type Todo struct {
+type Post struct {
 	ID      string `json:"id"`
-	Text    string `json:"text"`
-	Done    bool   `json:"done"`
-	Comment string `json:"comment"`
+	Content string `json:"content"`
 	User    *User  `json:"user"`
 }
 
