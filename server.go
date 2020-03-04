@@ -12,14 +12,22 @@ import (
 	"github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
+	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 )
 
 const defaultPort = "8080"
 
 func main() {
+
+	router := chi.NewRouter()
+
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+	}).Handler)
 
 	err := godotenv.Load()
 
@@ -50,9 +58,12 @@ func main() {
 		DB: db,
 	}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	serverErr := http.ListenAndServe(":"+port, router)
+
+	if serverErr != nil {
+		log.Fatal(http.ListenAndServe(":"+port, nil))
+	}
 }
