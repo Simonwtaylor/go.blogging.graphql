@@ -2,6 +2,26 @@
 
 package model
 
+type Bike struct {
+	ID        string  `json:"id"`
+	CreatedAt int     `json:"createdAt"`
+	UpdatedAt int     `json:"updatedAt"`
+	DeletedAt *int    `json:"deletedAt"`
+	Make      string  `json:"make"`
+	Model     string  `json:"model"`
+	Reg       string  `json:"reg"`
+	Price     float64 `json:"price"`
+	Active    bool    `json:"active"`
+}
+
+type NewBike struct {
+	Make   string  `json:"make"`
+	Model  string  `json:"model"`
+	Reg    string  `json:"reg"`
+	Price  float64 `json:"price"`
+	Active bool    `json:"active"`
+}
+
 type NewPost struct {
 	Content string `json:"content"`
 	UserID  string `json:"userId"`

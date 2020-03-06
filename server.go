@@ -40,7 +40,7 @@ func main() {
 		log.Panicf("unable to open postgres db %v", err)
 	}
 
-	db.AutoMigrate(&entities.User{}, &entities.Post{})
+	db.AutoMigrate(&entities.User{}, &entities.Post{}, &entities.Bike{})
 	db.Create(&entities.Post{
 		Content:    "Hello world",
 		DatePosted: time.Now(),

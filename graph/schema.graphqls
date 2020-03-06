@@ -19,9 +19,22 @@ type User {
 	active: Boolean!
 }
 
+type Bike {
+  id: ID!
+  createdAt: Int!
+  updatedAt: Int!
+  deletedAt: Int
+	make: String!
+	model: String!
+	reg: String!
+	price: Float!
+	active: Boolean!
+}
+
 type Query {
   users: [User!]!
   posts: [Post!]!
+  bikes: [Bike!]!
 }
 
 input NewPost {
@@ -36,7 +49,16 @@ input NewUser {
 	active: Boolean!
 }
 
+input NewBike {
+	make: String!
+	model: String!
+	reg: String!
+	price: Float!
+	active: Boolean!
+}
+
 type Mutation {
   createUser(input: NewUser!): User!
   createPost(input: NewPost!): Post!
+  createBike(input: NewBike!): Bike!
 }

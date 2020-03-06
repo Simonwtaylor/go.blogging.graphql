@@ -10,6 +10,7 @@ import (
 	"github.com/Simonwtaylor/blogging-gql/entities"
 	"github.com/Simonwtaylor/blogging-gql/graph/generated"
 	"github.com/Simonwtaylor/blogging-gql/graph/model"
+	"github.com/biezhi/gorm-paginator/pagination"
 )
 
 func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
@@ -70,6 +71,35 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input model.NewPost) 
 	}, nil
 }
 
+func (r *mutationResolver) CreateBike(ctx context.Context, input model.NewBike) (*model.Bike, error) {
+	bike := entities.Bike{
+		Active: input.Active,
+		Make:   input.Make,
+		Model:  input.Model,
+		Price:  input.Price,
+		Reg:    input.Reg,
+	}
+
+	isNew := r.DB.NewRecord(bike)
+
+	if !isNew {
+		return nil, fmt.Errorf("unable to create user as it already contains an id, %v", bike)
+	}
+
+	r.DB.Create(&bike)
+
+	return &model.Bike{
+		ID:        fmt.Sprintf("%v", bike.ID),
+		Active:    bike.Active,
+		Make:      bike.Make,
+		Model:     bike.Model,
+		Reg:       bike.Reg,
+		Price:     bike.Price,
+		CreatedAt: bike.CreatedAt.Nanosecond(),
+		UpdatedAt: bike.UpdatedAt.Nanosecond(),
+	}, nil
+}
+
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 	var users []entities.User
 	r.DB.Find(&users)
@@ -89,7 +119,13 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 
 func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	var posts []entities.Post
-	r.DB.Preload("User").Find(&posts)
+	db := r.DB.Preload("User").Find(&posts)
+	pagination.Paging(&pagination.Param{
+		DB:    db,
+		Page:  1,
+		Limit: 1000,
+	}, &posts)
+
 	var postModels []*model.Post
 	for _, post := range posts {
 		postModels = append(postModels, &model.Post{
@@ -106,6 +142,32 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 	}
 
 	return postModels, nil
+}
+
+func (r *queryResolver) Bikes(ctx context.Context) ([]*model.Bike, error) {
+	var bikes []entities.Bike
+	db := r.DB.Find(&bikes)
+	pagination.Paging(&pagination.Param{
+		DB:    db,
+		Page:  1,
+		Limit: 1000,
+	}, &bikes)
+
+	var bikeModels []*model.Bike
+	for _, bike := range bikes {
+		bikeModels = append(bikeModels, &model.Bike{
+			ID:        fmt.Sprintf("%v", bike.ID),
+			Active:    bike.Active,
+			Make:      bike.Make,
+			Model:     bike.Model,
+			Reg:       bike.Reg,
+			Price:     bike.Price,
+			CreatedAt: bike.CreatedAt.Nanosecond(),
+			UpdatedAt: bike.UpdatedAt.Nanosecond(),
+		})
+	}
+
+	return bikeModels, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
