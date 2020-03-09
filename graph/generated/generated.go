@@ -55,6 +55,16 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	BikeQuery struct {
+		Data func(childComplexity int) int
+		Meta func(childComplexity int) int
+	}
+
+	Meta struct {
+		Cursor     func(childComplexity int) int
+		TotalItems func(childComplexity int) int
+	}
+
 	Mutation struct {
 		CreateBike func(childComplexity int, input model.NewBike) int
 		CreatePost func(childComplexity int, input model.NewPost) int
@@ -67,10 +77,15 @@ type ComplexityRoot struct {
 		User    func(childComplexity int) int
 	}
 
+	PostQuery struct {
+		Data func(childComplexity int) int
+		Meta func(childComplexity int) int
+	}
+
 	Query struct {
-		Bikes func(childComplexity int) int
-		Posts func(childComplexity int) int
-		Users func(childComplexity int) int
+		Bikes func(childComplexity int, input model.PaginatedQuery) int
+		Posts func(childComplexity int, input model.PaginatedQuery) int
+		Users func(childComplexity int, input model.PaginatedQuery) int
 	}
 
 	User struct {
@@ -83,6 +98,11 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 		Username  func(childComplexity int) int
 	}
+
+	UserQuery struct {
+		Data func(childComplexity int) int
+		Meta func(childComplexity int) int
+	}
 }
 
 type MutationResolver interface {
@@ -91,9 +111,9 @@ type MutationResolver interface {
 	CreateBike(ctx context.Context, input model.NewBike) (*model.Bike, error)
 }
 type QueryResolver interface {
-	Users(ctx context.Context) ([]*model.User, error)
-	Posts(ctx context.Context) ([]*model.Post, error)
-	Bikes(ctx context.Context) ([]*model.Bike, error)
+	Users(ctx context.Context, input model.PaginatedQuery) (*model.UserQuery, error)
+	Posts(ctx context.Context, input model.PaginatedQuery) (*model.PostQuery, error)
+	Bikes(ctx context.Context, input model.PaginatedQuery) (*model.BikeQuery, error)
 }
 
 type executableSchema struct {
@@ -174,6 +194,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Bike.UpdatedAt(childComplexity), true
 
+	case "BikeQuery.data":
+		if e.complexity.BikeQuery.Data == nil {
+			break
+		}
+
+		return e.complexity.BikeQuery.Data(childComplexity), true
+
+	case "BikeQuery.meta":
+		if e.complexity.BikeQuery.Meta == nil {
+			break
+		}
+
+		return e.complexity.BikeQuery.Meta(childComplexity), true
+
+	case "Meta.cursor":
+		if e.complexity.Meta.Cursor == nil {
+			break
+		}
+
+		return e.complexity.Meta.Cursor(childComplexity), true
+
+	case "Meta.totalItems":
+		if e.complexity.Meta.TotalItems == nil {
+			break
+		}
+
+		return e.complexity.Meta.TotalItems(childComplexity), true
+
 	case "Mutation.createBike":
 		if e.complexity.Mutation.CreateBike == nil {
 			break
@@ -231,26 +279,55 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Post.User(childComplexity), true
 
+	case "PostQuery.data":
+		if e.complexity.PostQuery.Data == nil {
+			break
+		}
+
+		return e.complexity.PostQuery.Data(childComplexity), true
+
+	case "PostQuery.meta":
+		if e.complexity.PostQuery.Meta == nil {
+			break
+		}
+
+		return e.complexity.PostQuery.Meta(childComplexity), true
+
 	case "Query.bikes":
 		if e.complexity.Query.Bikes == nil {
 			break
 		}
 
-		return e.complexity.Query.Bikes(childComplexity), true
+		args, err := ec.field_Query_bikes_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Bikes(childComplexity, args["input"].(model.PaginatedQuery)), true
 
 	case "Query.posts":
 		if e.complexity.Query.Posts == nil {
 			break
 		}
 
-		return e.complexity.Query.Posts(childComplexity), true
+		args, err := ec.field_Query_posts_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Posts(childComplexity, args["input"].(model.PaginatedQuery)), true
 
 	case "Query.users":
 		if e.complexity.Query.Users == nil {
 			break
 		}
 
-		return e.complexity.Query.Users(childComplexity), true
+		args, err := ec.field_Query_users_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Users(childComplexity, args["input"].(model.PaginatedQuery)), true
 
 	case "User.active":
 		if e.complexity.User.Active == nil {
@@ -307,6 +384,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Username(childComplexity), true
+
+	case "UserQuery.data":
+		if e.complexity.UserQuery.Data == nil {
+			break
+		}
+
+		return e.complexity.UserQuery.Data(childComplexity), true
+
+	case "UserQuery.meta":
+		if e.complexity.UserQuery.Meta == nil {
+			break
+		}
+
+		return e.complexity.UserQuery.Meta(childComplexity), true
 
 	}
 	return 0, false
@@ -406,9 +497,9 @@ type Bike {
 }
 
 type Query {
-  users: [User!]!
-  posts: [Post!]!
-  bikes: [Bike!]!
+  users(input: PaginatedQuery!): UserQuery!
+  posts(input: PaginatedQuery!): PostQuery!
+  bikes(input: PaginatedQuery!): BikeQuery!
 }
 
 input NewPost {
@@ -429,6 +520,31 @@ input NewBike {
 	reg: String!
 	price: Float!
 	active: Boolean!
+}
+
+type Meta {
+  cursor: Int!
+  totalItems: Int!
+}
+
+input PaginatedQuery {
+  cursor: Int!
+  pageSize: Int!
+}
+
+type PostQuery {
+  meta: Meta!
+  data: [Post!]!
+}
+
+type UserQuery {
+  meta: Meta!
+  data: [User!]!
+}
+
+type BikeQuery {
+  meta: Meta!
+  data: [Bike!]!
 }
 
 type Mutation {
@@ -496,6 +612,48 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_bikes_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.PaginatedQuery
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNPaginatedQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPaginatedQuery(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_posts_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.PaginatedQuery
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNPaginatedQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPaginatedQuery(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_users_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.PaginatedQuery
+	if tmp, ok := rawArgs["input"]; ok {
+		arg0, err = ec.unmarshalNPaginatedQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPaginatedQuery(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -838,6 +996,142 @@ func (ec *executionContext) _Bike_active(ctx context.Context, field graphql.Coll
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _BikeQuery_meta(ctx context.Context, field graphql.CollectedField, obj *model.BikeQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BikeQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Meta, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Meta)
+	fc.Result = res
+	return ec.marshalNMeta2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _BikeQuery_data(ctx context.Context, field graphql.CollectedField, obj *model.BikeQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "BikeQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Bike)
+	fc.Result = res
+	return ec.marshalNBike2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐBikeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_cursor(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Meta",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Meta_totalItems(ctx context.Context, field graphql.CollectedField, obj *model.Meta) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "Meta",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.TotalItems, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1063,6 +1357,74 @@ func (ec *executionContext) _Post_user(ctx context.Context, field graphql.Collec
 	return ec.marshalNUser2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _PostQuery_meta(ctx context.Context, field graphql.CollectedField, obj *model.PostQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "PostQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Meta, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Meta)
+	fc.Result = res
+	return ec.marshalNMeta2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PostQuery_data(ctx context.Context, field graphql.CollectedField, obj *model.PostQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "PostQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Post)
+	fc.Result = res
+	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -1078,9 +1440,16 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_users_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Users(rctx)
+		return ec.resolvers.Query().Users(rctx, args["input"].(model.PaginatedQuery))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1092,9 +1461,9 @@ func (ec *executionContext) _Query_users(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.User)
+	res := resTmp.(*model.UserQuery)
 	fc.Result = res
-	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
+	return ec.marshalNUserQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUserQuery(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1112,9 +1481,16 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_posts_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Posts(rctx)
+		return ec.resolvers.Query().Posts(rctx, args["input"].(model.PaginatedQuery))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1126,9 +1502,9 @@ func (ec *executionContext) _Query_posts(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Post)
+	res := resTmp.(*model.PostQuery)
 	fc.Result = res
-	return ec.marshalNPost2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPostᚄ(ctx, field.Selections, res)
+	return ec.marshalNPostQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPostQuery(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_bikes(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1146,9 +1522,16 @@ func (ec *executionContext) _Query_bikes(ctx context.Context, field graphql.Coll
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_bikes_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().Bikes(rctx)
+		return ec.resolvers.Query().Bikes(rctx, args["input"].(model.PaginatedQuery))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -1160,9 +1543,9 @@ func (ec *executionContext) _Query_bikes(ctx context.Context, field graphql.Coll
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Bike)
+	res := resTmp.(*model.BikeQuery)
 	fc.Result = res
-	return ec.marshalNBike2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐBikeᚄ(ctx, field.Selections, res)
+	return ec.marshalNBikeQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐBikeQuery(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -1501,6 +1884,74 @@ func (ec *executionContext) _User_active(ctx context.Context, field graphql.Coll
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserQuery_meta(ctx context.Context, field graphql.CollectedField, obj *model.UserQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Meta, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Meta)
+	fc.Result = res
+	return ec.marshalNMeta2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐMeta(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserQuery_data(ctx context.Context, field graphql.CollectedField, obj *model.UserQuery) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:   "UserQuery",
+		Field:    field,
+		Args:     nil,
+		IsMethod: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Data, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚕᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUserᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) ___Directive_name(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
@@ -2660,6 +3111,30 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputPaginatedQuery(ctx context.Context, obj interface{}) (model.PaginatedQuery, error) {
+	var it model.PaginatedQuery
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "cursor":
+			var err error
+			it.Cursor, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "pageSize":
+			var err error
+			it.PageSize, err = ec.unmarshalNInt2int(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -2718,6 +3193,70 @@ func (ec *executionContext) _Bike(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "active":
 			out.Values[i] = ec._Bike_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var bikeQueryImplementors = []string{"BikeQuery"}
+
+func (ec *executionContext) _BikeQuery(ctx context.Context, sel ast.SelectionSet, obj *model.BikeQuery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bikeQueryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BikeQuery")
+		case "meta":
+			out.Values[i] = ec._BikeQuery_meta(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "data":
+			out.Values[i] = ec._BikeQuery_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var metaImplementors = []string{"Meta"}
+
+func (ec *executionContext) _Meta(ctx context.Context, sel ast.SelectionSet, obj *model.Meta) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, metaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Meta")
+		case "cursor":
+			out.Values[i] = ec._Meta_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "totalItems":
+			out.Values[i] = ec._Meta_totalItems(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2796,6 +3335,38 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "user":
 			out.Values[i] = ec._Post_user(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var postQueryImplementors = []string{"PostQuery"}
+
+func (ec *executionContext) _PostQuery(ctx context.Context, sel ast.SelectionSet, obj *model.PostQuery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postQueryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PostQuery")
+		case "meta":
+			out.Values[i] = ec._PostQuery_meta(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "data":
+			out.Values[i] = ec._PostQuery_data(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -2927,6 +3498,38 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "active":
 			out.Values[i] = ec._User_active(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var userQueryImplementors = []string{"UserQuery"}
+
+func (ec *executionContext) _UserQuery(ctx context.Context, sel ast.SelectionSet, obj *model.UserQuery) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userQueryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserQuery")
+		case "meta":
+			out.Values[i] = ec._UserQuery_meta(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "data":
+			out.Values[i] = ec._UserQuery_data(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -3237,6 +3840,20 @@ func (ec *executionContext) marshalNBike2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggi
 	return ec._Bike(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNBikeQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐBikeQuery(ctx context.Context, sel ast.SelectionSet, v model.BikeQuery) graphql.Marshaler {
+	return ec._BikeQuery(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBikeQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐBikeQuery(ctx context.Context, sel ast.SelectionSet, v *model.BikeQuery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._BikeQuery(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	return graphql.UnmarshalBoolean(v)
 }
@@ -3293,6 +3910,20 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 	return res
 }
 
+func (ec *executionContext) marshalNMeta2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v model.Meta) graphql.Marshaler {
+	return ec._Meta(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMeta2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐMeta(ctx context.Context, sel ast.SelectionSet, v *model.Meta) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Meta(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNNewBike2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐNewBike(ctx context.Context, v interface{}) (model.NewBike, error) {
 	return ec.unmarshalInputNewBike(ctx, v)
 }
@@ -3303,6 +3934,10 @@ func (ec *executionContext) unmarshalNNewPost2githubᚗcomᚋSimonwtaylorᚋblog
 
 func (ec *executionContext) unmarshalNNewUser2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐNewUser(ctx context.Context, v interface{}) (model.NewUser, error) {
 	return ec.unmarshalInputNewUser(ctx, v)
+}
+
+func (ec *executionContext) unmarshalNPaginatedQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPaginatedQuery(ctx context.Context, v interface{}) (model.PaginatedQuery, error) {
+	return ec.unmarshalInputPaginatedQuery(ctx, v)
 }
 
 func (ec *executionContext) marshalNPost2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPost(ctx context.Context, sel ast.SelectionSet, v model.Post) graphql.Marshaler {
@@ -3354,6 +3989,20 @@ func (ec *executionContext) marshalNPost2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggi
 		return graphql.Null
 	}
 	return ec._Post(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPostQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPostQuery(ctx context.Context, sel ast.SelectionSet, v model.PostQuery) graphql.Marshaler {
+	return ec._PostQuery(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPostQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐPostQuery(ctx context.Context, sel ast.SelectionSet, v *model.PostQuery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PostQuery(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -3419,6 +4068,20 @@ func (ec *executionContext) marshalNUser2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggi
 		return graphql.Null
 	}
 	return ec._User(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNUserQuery2githubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUserQuery(ctx context.Context, sel ast.SelectionSet, v model.UserQuery) graphql.Marshaler {
+	return ec._UserQuery(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserQuery2ᚖgithubᚗcomᚋSimonwtaylorᚋbloggingᚑgqlᚋgraphᚋmodelᚐUserQuery(ctx context.Context, sel ast.SelectionSet, v *model.UserQuery) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._UserQuery(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

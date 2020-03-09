@@ -100,9 +100,16 @@ func (r *mutationResolver) CreateBike(ctx context.Context, input model.NewBike) 
 	}, nil
 }
 
-func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+func (r *queryResolver) Users(ctx context.Context, input model.PaginatedQuery) (*model.UserQuery, error) {
 	var users []entities.User
-	r.DB.Find(&users)
+	db := r.DB.Find(&users)
+	count := len(users)
+	pagination.Paging(&pagination.Param{
+		DB:    db,
+		Page:  input.Cursor,
+		Limit: input.PageSize,
+	}, &users)
+
 	var userModels []*model.User
 	for _, user := range users {
 		userModels = append(userModels, &model.User{
@@ -114,16 +121,23 @@ func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
 		})
 	}
 
-	return userModels, nil
+	return &model.UserQuery{
+		Data: userModels,
+		Meta: &model.Meta{
+			Cursor:     input.Cursor,
+			TotalItems: count,
+		},
+	}, nil
 }
 
-func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
+func (r *queryResolver) Posts(ctx context.Context, input model.PaginatedQuery) (*model.PostQuery, error) {
 	var posts []entities.Post
 	db := r.DB.Preload("User").Find(&posts)
+	count := len(posts)
 	pagination.Paging(&pagination.Param{
 		DB:    db,
-		Page:  1,
-		Limit: 1000,
+		Page:  input.Cursor,
+		Limit: input.PageSize,
 	}, &posts)
 
 	var postModels []*model.Post
@@ -141,16 +155,23 @@ func (r *queryResolver) Posts(ctx context.Context) ([]*model.Post, error) {
 		})
 	}
 
-	return postModels, nil
+	return &model.PostQuery{
+		Data: postModels,
+		Meta: &model.Meta{
+			Cursor:     input.Cursor,
+			TotalItems: count,
+		},
+	}, nil
 }
 
-func (r *queryResolver) Bikes(ctx context.Context) ([]*model.Bike, error) {
+func (r *queryResolver) Bikes(ctx context.Context, input model.PaginatedQuery) (*model.BikeQuery, error) {
 	var bikes []entities.Bike
 	db := r.DB.Find(&bikes)
+	count := len(bikes)
 	pagination.Paging(&pagination.Param{
 		DB:    db,
-		Page:  1,
-		Limit: 1000,
+		Page:  input.Cursor,
+		Limit: input.PageSize,
 	}, &bikes)
 
 	var bikeModels []*model.Bike
@@ -167,7 +188,13 @@ func (r *queryResolver) Bikes(ctx context.Context) ([]*model.Bike, error) {
 		})
 	}
 
-	return bikeModels, nil
+	return &model.BikeQuery{
+		Data: bikeModels,
+		Meta: &model.Meta{
+			Cursor:     input.Cursor,
+			TotalItems: count,
+		},
+	}, nil
 }
 
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }

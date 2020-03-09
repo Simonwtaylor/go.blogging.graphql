@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
@@ -41,12 +40,6 @@ func main() {
 	}
 
 	db.AutoMigrate(&entities.User{}, &entities.Post{}, &entities.Bike{})
-	db.Create(&entities.Post{
-		Content:    "Hello world",
-		DatePosted: time.Now(),
-		User:       entities.User{Email: "nickdunn@gmail.com", Password: "Woop", Username: "Nick"},
-	})
-
 	defer db.Close()
 
 	port := os.Getenv("PORT")

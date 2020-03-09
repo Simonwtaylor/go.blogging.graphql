@@ -32,9 +32,9 @@ type Bike {
 }
 
 type Query {
-  users: [User!]!
-  posts: [Post!]!
-  bikes: [Bike!]!
+  users(input: PaginatedQuery!): UserQuery!
+  posts(input: PaginatedQuery!): PostQuery!
+  bikes(input: PaginatedQuery!): BikeQuery!
 }
 
 input NewPost {
@@ -55,6 +55,31 @@ input NewBike {
 	reg: String!
 	price: Float!
 	active: Boolean!
+}
+
+type Meta {
+  cursor: Int!
+  totalItems: Int!
+}
+
+input PaginatedQuery {
+  cursor: Int!
+  pageSize: Int!
+}
+
+type PostQuery {
+  meta: Meta!
+  data: [Post!]!
+}
+
+type UserQuery {
+  meta: Meta!
+  data: [User!]!
+}
+
+type BikeQuery {
+  meta: Meta!
+  data: [Bike!]!
 }
 
 type Mutation {

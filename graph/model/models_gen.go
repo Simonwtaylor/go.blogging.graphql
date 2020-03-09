@@ -14,6 +14,16 @@ type Bike struct {
 	Active    bool    `json:"active"`
 }
 
+type BikeQuery struct {
+	Meta *Meta   `json:"meta"`
+	Data []*Bike `json:"data"`
+}
+
+type Meta struct {
+	Cursor     int `json:"cursor"`
+	TotalItems int `json:"totalItems"`
+}
+
 type NewBike struct {
 	Make   string  `json:"make"`
 	Model  string  `json:"model"`
@@ -34,10 +44,20 @@ type NewUser struct {
 	Active   bool   `json:"active"`
 }
 
+type PaginatedQuery struct {
+	Cursor   int `json:"cursor"`
+	PageSize int `json:"pageSize"`
+}
+
 type Post struct {
 	ID      string `json:"id"`
 	Content string `json:"content"`
 	User    *User  `json:"user"`
+}
+
+type PostQuery struct {
+	Meta *Meta   `json:"meta"`
+	Data []*Post `json:"data"`
 }
 
 type User struct {
@@ -49,4 +69,9 @@ type User struct {
 	Password  string `json:"password"`
 	Email     string `json:"email"`
 	Active    bool   `json:"active"`
+}
+
+type UserQuery struct {
+	Meta *Meta   `json:"meta"`
+	Data []*User `json:"data"`
 }
